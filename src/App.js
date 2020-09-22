@@ -32,9 +32,8 @@ class App extends React.Component {
             ...snapShot.data(),
           });
         });
-      } else {
-        setCurrentUser(userAuth);
       }
+      setCurrentUser(userAuth);
     });
   }
 
@@ -61,7 +60,6 @@ class App extends React.Component {
               )
             }
           />
-          
         </Switch>
       </div>
     );
