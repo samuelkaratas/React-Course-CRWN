@@ -1,31 +1,23 @@
 import React from "react";
 import { Route } from "react-router-dom";
 import { connect } from "react-redux";
+import { createStructuredSelector } from "reselect";
 
-import CollectionsOverview from "../../components/collections-overview/collections-overview";
+//This is colled the container pattern. This is one way and can be implemented to CollectionPage component.
+import CollectionsOverviewContainer from "../../components/collections-overview/collections-overview-container";
 import CollectionPage from "../collection/collection";
 
-import {
-  firestore,
-  convertCollectionsSnapshotToMap,
-} from "../../firebase/firebase";
-import { updateCollections } from "../../redux/shop/shop.actions";
+import { fetchCollectionsStart } from "../../redux/shop/shop.actions";
+import { selectIsCollectionsLoaded } from "../../redux/shop/shop.selectors";
+
 import WithSpinner from "../../components/with-spinner/with-spinner";
 
-const CollectionsOverviewWithSpinner = WithSpinner(CollectionsOverview);
 const CollectionPageWithSpinner = WithSpinner(CollectionPage);
 
 class ShopPage extends React.Component {
-  state = {
-    loading: true,
-  };
-
-  unsubscribeFromSnapshot = null;
-
   componentDidMount() {
-    const { updateCollections } = this.props;
-    const collectionRef = firestore.collection("collections");
-
+    const { fetchCollectionsStart } = this.props;
+    fetchCollectionsStart();
     /*LIVE UPDATES
     this.unsubscribeFromSnapshot = collectionRef.onSnapshot(
       async (snapshot) => {
@@ -34,33 +26,33 @@ class ShopPage extends React.Component {
         this.setState({ loading: false });
       }
     );*/
-    //UPDATES WHEN COMPONENT ONCE
+    /*UPDATES WHEN COMPONENT MOUNTS ONCE
     collectionRef.get().then((snapshot) => {
       const collectionsMap = convertCollectionsSnapshotToMap(snapshot);
       updateCollections(collectionsMap);
       this.setState({ loading: false });
-    });
+    });*/
     //USING NATIVE FETCH FUNCTION
     //fetch('https://firestore.googleapis.com/v1/projects/crwn-db-692a7/databases/(default)/documents/collections')
     //  .then(response => response.json()).then(collections => console.log(collections))
   }
 
   render() {
-    const { match } = this.props;
-    const { loading } = this.state;
+    const { match, isCollectionsLoaded } = this.props;
     return (
       <div>
         <Route
           exact
           path={`${match.path}`}
-          render={(props) => (
-            <CollectionsOverviewWithSpinner isLoading={loading} {...props} />
-          )}
+          component={CollectionsOverviewContainer}
         />
         <Route
           path={`${match.path}/:collectionId`}
           render={(props) => (
-            <CollectionPageWithSpinner isLoading={loading} {...props} />
+            <CollectionPageWithSpinner
+              isLoading={!isCollectionsLoaded}
+              {...props}
+            />
           )}
         />
       </div>
@@ -68,9 +60,12 @@ class ShopPage extends React.Component {
   }
 }
 
-const mapDispatchToProps = (dispatch) => ({
-  updateCollections: (collectionsMap) =>
-    dispatch(updateCollections(collectionsMap)),
+const mapStateToProps = createStructuredSelector({
+  isCollectionsLoaded: selectIsCollectionsLoaded,
 });
 
-export default connect(null, mapDispatchToProps)(ShopPage);
+const mapDispatchToProps = (dispatch) => ({
+  fetchCollectionsStart: () => dispatch(fetchCollectionsStart()),
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(ShopPage);
